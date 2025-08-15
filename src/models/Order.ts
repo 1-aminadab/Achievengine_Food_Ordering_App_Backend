@@ -1,7 +1,31 @@
 import mongoose, { Schema, Document } from 'mongoose';
 import { IOrder } from '../types';
 
-export interface IOrderDocument extends IOrder, Document {}
+export interface IOrderDocument extends Document {
+  id: string;
+  userId: string;
+  items: any[];
+  totalPrice: number;
+  status: string;
+  discount: number;
+  deliveryFee: number;
+  finalTotal: number;
+  deliveryType: string;
+  deliveryAddress: any;
+  paymentMethod: string;
+  paymentStatus: string;
+  cutleryCount: number;
+  promoCode: string;
+  specialInstructions: string;
+  estimatedDeliveryTime: Date;
+  actualDeliveryTime: Date;
+  rating: {
+    food: number;
+    delivery: number;
+    overall: number;
+    comment: string;
+  };
+}
 
 const OrderSchema: Schema = new Schema({
   id: {

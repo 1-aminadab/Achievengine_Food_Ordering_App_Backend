@@ -1,7 +1,21 @@
 import mongoose, { Schema, Document } from 'mongoose';
 import { IPromoCode } from '../types';
 
-export interface IPromoCodeDocument extends IPromoCode, Document {}
+export interface IPromoCodeDocument extends Document {
+  id: string;
+  code: string;
+  description: string;
+  discountType: string;
+  discountValue: number;
+  minimumOrderValue: number;
+  maximumDiscount: number;
+  usageLimit: number;
+  usedCount: number;
+  validFrom: Date;
+  validUntil: Date;
+  isActive: boolean;
+  applicableRestaurants: string[];
+}
 
 const PromoCodeSchema: Schema = new Schema({
   id: {

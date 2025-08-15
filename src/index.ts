@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import compression from 'compression';
+// import compression from 'compression';
 import dotenv from 'dotenv';
 import { connectDatabase } from './services/database';
 import { seedFoodData, seedPromoCodeData } from './services/seedData';
@@ -11,6 +11,7 @@ import { errorHandler, notFoundHandler } from './middleware/errorMiddleware';
 import foodRoutes from './routes/foodRoutes';
 import orderRoutes from './routes/orderRoutes';
 import promoRoutes from './routes/promoRoutes';
+import uploadRoutes from './routes/uploadRoutes';
 
 // Import validation middleware
 import { validate, createFoodSchema, updateFoodSchema, createOrderSchema, updateOrderStatusSchema, rateOrderSchema, validatePromoCodeSchema } from './middleware/validationMiddleware';
@@ -23,21 +24,11 @@ const PORT = process.env.PORT || 3000;
 
 // Security middleware
 app.use(helmet());
-app.use(compression());
 
-// CORS configuration
+// CORS configuration  
 const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3000'];
 app.use(cors({
-  origin: (origin, callback) => {
-    // Allow requests with no origin (mobile apps, postman, etc.)
-    if (!origin) return callback(null, true);
-    
-    if (allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
+  origin: allowedOrigins,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
@@ -46,6 +37,9 @@ app.use(cors({
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Serve static files from uploads directory
+app.use('/uploads', express.static('uploads'));
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -61,6 +55,7 @@ app.get('/health', (req, res) => {
 app.use('/api/foods', foodRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/promo-codes', promoRoutes);
+app.use('/api/upload', uploadRoutes);
 
 // API documentation endpoint
 app.get('/api', (req, res) => {
@@ -89,6 +84,11 @@ app.get('/api', (req, res) => {
       promoCodes: {
         'POST /api/promo-codes/validate': 'Validate promo code',
         'GET /api/promo-codes/active': 'Get active promo codes'
+      },
+      uploads: {
+        'POST /api/upload/image': 'Upload single image file',
+        'GET /api/upload/files/:filename': 'Get uploaded file by filename',
+        'DELETE /api/upload/image/:filename': 'Delete uploaded image'
       }
     }
   });
@@ -104,9 +104,8 @@ const startServer = async (): Promise<void> => {
     // Connect to database
     await connectDatabase();
     
-    // Seed initial data
-    await seedFoodData();
-    await seedPromoCodeData();
+    // Skip seeding since data already exists in the database
+    console.log('📊 Using existing data from MongoDB Atlas cluster');
     
     // Start server
     app.listen(PORT, () => {

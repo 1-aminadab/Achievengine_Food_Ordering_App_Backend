@@ -208,9 +208,9 @@ export interface FoodFilters extends PaginationQuery {
   restaurant?: string;
   minPrice?: number;
   maxPrice?: number;
-  isVegetarian?: boolean;
-  isVegan?: boolean;
-  isGlutenFree?: boolean;
+  isVegetarian?: string;
+  isVegan?: string;
+  isGlutenFree?: string;
   spiceLevel?: string;
   search?: string;
 }
