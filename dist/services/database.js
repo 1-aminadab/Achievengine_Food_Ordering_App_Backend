@@ -42,7 +42,7 @@ const connectDatabase = async () => {
     }
     catch (error) {
         console.error('❌ Failed to connect to MongoDB:', error);
-        process.exit(1);
+        throw error;
     }
 };
 exports.connectDatabase = connectDatabase;

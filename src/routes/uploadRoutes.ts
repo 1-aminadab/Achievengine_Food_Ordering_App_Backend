@@ -42,27 +42,56 @@ const upload = multer({
   },
 });
 
+// Test endpoint to verify upload functionality
+router.get('/test', (req: any, res: any) => {
+  res.status(200).json({
+    success: true,
+    message: 'Upload endpoint is working',
+    timestamp: new Date().toISOString(),
+    uploadsDir: uploadsDir,
+    uploadsDirExists: fs.existsSync(uploadsDir),
+  });
+});
+
 // Upload single image endpoint
-router.post('/image', function(req, res, next) {
-  upload.single('image')(req, res, function(err) {
+router.post('/image', (req: any, res: any) => {
+  console.log('Upload request received');
+  console.log('Request headers:', req.headers);
+  console.log('Request body keys:', Object.keys(req.body || {}));
+  
+  upload.single('image')(req, res, (err: any) => {
     if (err) {
+      console.error('Multer error:', err);
       return res.status(400).json({
         success: false,
         message: err.message || 'Upload failed',
+        error: err.toString(),
       });
     }
 
     try {
+      console.log('File received:', req.file);
+      
       if (!req.file) {
+        console.error('No file in request');
         return res.status(400).json({
           success: false,
           message: 'No image file provided',
+          receivedFields: Object.keys(req.body || {}),
         });
       }
 
       // Create the image URL
       const baseUrl = `${req.protocol}://${req.get('host')}`;
       const imageUrl = `${baseUrl}/uploads/${req.file.filename}`;
+
+      console.log('Image uploaded successfully:', {
+        filename: req.file.filename,
+        originalName: req.file.originalname,
+        size: req.file.size,
+        mimetype: req.file.mimetype,
+        url: imageUrl,
+      });
 
       res.status(200).json({
         success: true,
@@ -77,7 +106,7 @@ router.post('/image', function(req, res, next) {
         },
       });
     } catch (error) {
-      console.error('Upload error:', error);
+      console.error('Upload processing error:', error);
       res.status(500).json({
         success: false,
         message: 'Failed to upload image',
@@ -88,7 +117,7 @@ router.post('/image', function(req, res, next) {
 });
 
 // Serve uploaded files
-router.get('/files/:filename', function(req, res) {
+router.get('/files/:filename', (req: any, res: any) => {
   try {
     const filename = req.params.filename;
     const filePath = path.join(uploadsDir, filename);
@@ -113,7 +142,7 @@ router.get('/files/:filename', function(req, res) {
 });
 
 // Delete image endpoint
-router.delete('/image/:filename', function(req, res) {
+router.delete('/image/:filename', (req: any, res: any) => {
   try {
     const filename = req.params.filename;
     const filePath = path.join(uploadsDir, filename);

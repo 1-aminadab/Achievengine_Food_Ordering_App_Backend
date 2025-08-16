@@ -145,7 +145,7 @@ export interface IRestaurant {
     average: number;
     count: number;
   };
-  priceRange: '$' | '$$' | '$$$' | '$$$$';
+  priceRange: 'Low' | 'Medium' | 'High' | 'Premium';
   deliveryFee: number;
   minimumOrder: number;
   estimatedDeliveryTime: string;

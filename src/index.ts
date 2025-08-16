@@ -25,13 +25,40 @@ const PORT = process.env.PORT || 3000;
 // Security middleware
 app.use(helmet());
 
-// CORS configuration  
-const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3000'];
+// CORS configuration - Allow React Native and mobile requests
+const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [
+  'http://localhost:3000',
+  'http://localhost:8081', // Metro bundler
+  'http://10.0.2.2:3000',  // Android emulator localhost
+  'http://127.0.0.1:3000'  // iOS simulator localhost
+];
+
 app.use(cors({
-  origin: allowedOrigins,
+  origin: function (origin, callback) {
+    // Allow requests with no origin (mobile apps, React Native)
+    if (!origin) return callback(null, true);
+    
+    // Allow requests from allowed origins
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      return callback(null, true);
+    }
+    
+    // Allow localhost variations and IP addresses for development
+    if (origin && (
+      origin.startsWith('http://localhost:') ||
+      origin.startsWith('http://127.0.0.1:') ||
+      origin.startsWith('http://10.0.') ||
+      origin.startsWith('http://192.168.') ||
+      origin.includes('expo.dev')
+    )) {
+      return callback(null, true);
+    }
+    
+    callback(new Error('Not allowed by CORS'));
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 
 // Body parsing middleware
@@ -101,17 +128,21 @@ app.use(errorHandler);
 // Start server
 const startServer = async (): Promise<void> => {
   try {
-    // Connect to database
-    await connectDatabase();
+    // Try to connect to database, but continue without it if it fails
+    try {
+      await connectDatabase();
+      console.log('📊 Using existing data from MongoDB Atlas cluster');
+    } catch (dbError) {
+      console.warn('⚠️ Database connection failed, continuing without database for file upload functionality');
+      console.warn('💡 Some endpoints may not work without database connection');
+    }
     
-    // Skip seeding since data already exists in the database
-    console.log('📊 Using existing data from MongoDB Atlas cluster');
-    
-    // Start server
+    // Start server regardless of database connection
     app.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);
       console.log(`📍 Health check: http://localhost:${PORT}/health`);
       console.log(`📚 API docs: http://localhost:${PORT}/api`);
+      console.log(`📤 Upload API: http://localhost:${PORT}/api/upload/image`);
       console.log(`🍕 Foods API: http://localhost:${PORT}/api/foods`);
       console.log(`🎫 Promo codes API: http://localhost:${PORT}/api/promo-codes/active`);
     });

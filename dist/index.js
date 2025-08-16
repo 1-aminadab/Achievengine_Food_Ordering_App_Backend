@@ -17,12 +17,31 @@ dotenv_1.default.config();
 const app = (0, express_1.default)();
 const PORT = process.env.PORT || 3000;
 app.use((0, helmet_1.default)());
-const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3000'];
+const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [
+    'http://localhost:3000',
+    'http://localhost:8081',
+    'http://10.0.2.2:3000',
+    'http://127.0.0.1:3000'
+];
 app.use((0, cors_1.default)({
-    origin: allowedOrigins,
+    origin: function (origin, callback) {
+        if (!origin)
+            return callback(null, true);
+        if (allowedOrigins.indexOf(origin) !== -1) {
+            return callback(null, true);
+        }
+        if (origin && (origin.startsWith('http://localhost:') ||
+            origin.startsWith('http://127.0.0.1:') ||
+            origin.startsWith('http://10.0.') ||
+            origin.startsWith('http://192.168.') ||
+            origin.includes('expo.dev'))) {
+            return callback(null, true);
+        }
+        callback(new Error('Not allowed by CORS'));
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization']
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 app.use(express_1.default.json({ limit: '10mb' }));
 app.use(express_1.default.urlencoded({ extended: true, limit: '10mb' }));
@@ -78,12 +97,19 @@ app.use(errorMiddleware_1.notFoundHandler);
 app.use(errorMiddleware_1.errorHandler);
 const startServer = async () => {
     try {
-        await (0, database_1.connectDatabase)();
-        console.log('📊 Using existing data from MongoDB Atlas cluster');
+        try {
+            await (0, database_1.connectDatabase)();
+            console.log('📊 Using existing data from MongoDB Atlas cluster');
+        }
+        catch (dbError) {
+            console.warn('⚠️ Database connection failed, continuing without database for file upload functionality');
+            console.warn('💡 Some endpoints may not work without database connection');
+        }
         app.listen(PORT, () => {
             console.log(`🚀 Server running on port ${PORT}`);
             console.log(`📍 Health check: http://localhost:${PORT}/health`);
             console.log(`📚 API docs: http://localhost:${PORT}/api`);
+            console.log(`📤 Upload API: http://localhost:${PORT}/api/upload/image`);
             console.log(`🍕 Foods API: http://localhost:${PORT}/api/foods`);
             console.log(`🎫 Promo codes API: http://localhost:${PORT}/api/promo-codes/active`);
         });
